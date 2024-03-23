@@ -2,14 +2,13 @@
 import {
   createBrowserRouter,
 } from "react-router-dom";
-import App from "./App";
 import Withdraw from "./components/withdraw/Withdraw";
-import Liquid from "./components/deposit/Deposit";
+import Deposit from "./components/deposit/Deposit";
 
 export const routes = createBrowserRouter([
   {
     path: "/",
-    element: <Liquid/>,
+    element: <Deposit/>,
   },
   {
     path: "withdraw",

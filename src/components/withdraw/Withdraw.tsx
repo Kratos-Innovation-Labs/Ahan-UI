@@ -1,34 +1,56 @@
 import React from 'react'
-import { useAccountStore } from '../../store';
+import { useAccountStore, useClientStore } from '../../store';
 import { renderBalance } from '../../util';
+import { AHAN_CONTRACT_ADDRESS, MAX_CONTRACT_EXECUTION_ENERGY } from '../../config';
 import {
   AccountAddress,
   AccountTransactionType,
-  CIS2,
-  CIS2Contract,
-  ConcordiumGRPCClient,
-  ConcordiumGRPCWebClient,
-  ContractAddress,
-  CredentialRegistrationId,
+  EntrypointName,
   Energy,
-  getPastDate,
-  isUpdateContractSummary,
-  MIN_DATE,
-  TransactionHash,
-  Web3StatementBuilder,
+  ReceiveName,
+  ContractName,
+  InitName,
+  CcdAmount,
+  ConcordiumGRPCClient,
 } from '@concordium/web-sdk';
 
 export default function Withdraw() {
 
-  const {account, isConnected, amount, setAmount, setAccount, setIsConnected} = useAccountStore();
-  const [loading, setLoading] = React.useState(false);
-  const [success, setSuccess] = React.useState(false);
-  const [showSuccess, setShowSuccess] = React.useState(false);
-  const [showFailure, setShowFailure] = React.useState(false);
-  const CONTRACT_ADDRESS = ContractAddress.create(8382);
 
-  const handleButtonClick = async () => {
+  const {account, isConnected, amount} = useAccountStore();
+  const { provider } = useClientStore()
+
+  const [withdrawAmount, setWwithdrawAmount] = React.useState(0);
+  
+  const handleWwithdraw = async () => {
+    if(provider && account ){
+
+      const client = new ConcordiumGRPCClient(provider.grpcTransport);
+      const info = await client?.getInstanceInfo(AHAN_CONTRACT_ADDRESS);
+      if (!info) {
+        throw new Error(`contract not found`);
+      }
+      const { version, name, owner, amount, methods } = info;
+
+      console.log(methods)
+
+      const prefix = 'init_';
+      if (!InitName.toString(name).startsWith(prefix)) {
+          throw new Error(`name "${name}" doesn't start with "init_"`);
+      }
+
+      const txn = await provider.sendTransaction( AccountAddress.fromBase58(account),AccountTransactionType.Update,{
+        amount: CcdAmount.fromMicroCcd(withdrawAmount),
+        address: AHAN_CONTRACT_ADDRESS,
+        receiveName: ReceiveName.create(ContractName.fromInitName(info?.name), EntrypointName.fromString('withdraw')),
+        maxContractExecutionEnergy: Energy.create(MAX_CONTRACT_EXECUTION_ENERGY),
+      })
+
+      console.log(txn)
+    }
+    
   };
+
 
 
   return (
@@ -36,7 +58,7 @@ export default function Withdraw() {
       <h1 className='text-2xl font-bold'>Withdraw Tokens</h1>
       <input type="text" placeholder='Enter Amount' className="w-full p-4 text-gray-900 border border-gray-300 rounded-xl bg-gray-50 text-base" />
       <p className='text-right w-full text-sm'>Available Balance { renderBalance(amount)}</p>
-      <button className="w-full p-4 text-white bg-green-600 rounded-xl" disabled={!isConnected}>Withdraw</button>
+      <button className={ `w-full p-4 text-white ${isConnected ? 'bg-green-600' : 'bg-gray-300' }  rounded-xl`} disabled={!isConnected} onClick={handleWwithdraw}>Withdraw</button>
       <div className='space-y-2 w-full'>
         <div className="flex justify-between text-sm">
           <span>You will receive</span>

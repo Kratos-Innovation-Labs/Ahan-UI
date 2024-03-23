@@ -1,12 +1,9 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { detectConcordiumProvider } from '@concordium/browser-wallet-api-helpers';
 import { useAccountStore } from '../../store';
-import { CIS2, CIS2Contract, ConcordiumGRPCClient, Address, AccountAddress } from '@concordium/web-sdk';
-import { CONTRACT_ADDRESS } from '../../consts';
 
+export default function Navbar(props: any) {
 
-
-export default function Navbar() {
+  const { isConnected } = useAccountStore();
+  const { handleOnClick } = props;
   return (
     <nav className="bg-gray-200 border-gray-200 dark:bg-gray-700 dark:border-gray-700">
       <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
@@ -29,7 +26,10 @@ export default function Navbar() {
             </li>
           </ul>
         </div>
-        <WalletButton />
+        <div className='flex space-x-2'>
+          <WalletButton handleOnClick={handleOnClick} />
+          { isConnected && <LogoutButton /> }
+        </div>
       </div>
     </nav>
   )
@@ -37,54 +37,9 @@ export default function Navbar() {
 
 
 
-function WalletButton() {
-  const {account, isConnected, setAmount, setAccount, setIsConnected} = useAccountStore();
-
-  const handleGetAccount = useCallback((accountAddress: string | undefined) => {
-    let account = accountAddress ?  accountAddress : ''
-    setAccount(account);
-    setIsConnected(Boolean(accountAddress));
-  }, []);
-
-  const handleOnClick = useCallback(
-    () =>
-      detectConcordiumProvider()
-        .then((provider) => provider.connect())
-        .then(handleGetAccount),
-    []
-  );
-
-  useEffect(() => {
-    detectConcordiumProvider()
-      .then( async(provider) => {
-        // Listen for relevant events from the wallet.
-        provider.on('accountChanged', setAccount);
-        provider.on('accountDisconnected', () =>
-          provider.getMostRecentlySelectedAccount().then(handleGetAccount)
-        );
-        provider.on('chainChanged', (chain) => console.log(chain));
-        // Check if you are already connected
-        provider.getMostRecentlySelectedAccount().then(handleGetAccount);
-
-        const client = new ConcordiumGRPCClient(provider.grpcTransport);
-        const contractClient = await CIS2Contract.create(client, CONTRACT_ADDRESS);
-        const query: CIS2.BalanceOfQuery = {
-          tokenId: '',
-          address: AccountAddress.fromBase58('3N2PvtceNkTXkTbd7f25jVv6vasfDVetrmnHQJSqz9abFGbgwC') ,
-        };
-
-        const balance = await contractClient.balanceOf(query);
-        setAmount(balance)
-        
-
-      })
-      .catch(() => setIsConnected(false));
-  }, []);
-
-  console.log(account)
-
-
-
+function WalletButton(props: any) {
+  const { handleOnClick } = props;
+  const { account, isConnected } = useAccountStore();
   return (
 
     <div className="mt-3 mb-3">
@@ -99,6 +54,23 @@ function WalletButton() {
             {account.slice(0, 4)}...{account.slice(-4)}
           </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+function LogoutButton() {
+  const { isConnected, reset } = useAccountStore();
+  return (
+
+    <div className="mt-3 mb-3">
+      <div>
+        {isConnected && (
+          <button type="button" className='w-100 bg-red-600 py-2 px-4 rounded-xl text-white' onClick={reset}>
+            Logout
+          </button>
+        )}
+
       </div>
     </div>
   );

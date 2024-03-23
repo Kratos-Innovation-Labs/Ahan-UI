@@ -15,7 +15,13 @@ export function microCcdToCcdString(amount: bigint) {
   return `${int}.${frac.toString().padStart(6, '0')}`;
 }
 
-export function renderBalance(balance: bigint): string {
+export function renderBalance(balanceString: string): string {
+  
+  if(balanceString === "0.0"){
+    return '0.0'
+  }
+
+  const balance = BigInt(balanceString)
   if (balance === 0n) {
       return '0.0';
   }

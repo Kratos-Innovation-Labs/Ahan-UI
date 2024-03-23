@@ -1,24 +1,47 @@
+import { WalletApi } from '@concordium/browser-wallet-api-helpers'
 import { create } from 'zustand'
+import { persist, createJSONStorage } from 'zustand/middleware'
 
 
 type AccountState = {
-  client: any,
   isConnected: boolean,
   account: string | undefined,
-  amount: bigint,
-  setAmount: (amount: bigint) => void,
+  amount: string,
+  setAmount: (amount: string) => void,
   setIsConnected: (isConnected: boolean) => void,
-  setAccount: (account: string) => void
-  setClient: (client: any) => void
+  setAccount: (account: string) => void,
+  reset: ()=> void
 }
 
-export const useAccountStore = create<AccountState>((set) => ({
-  isConnected: false,
-  setIsConnected: (isConnected) => set(() => ({ isConnected})),
-  account: '',
-  setAccount: (account) => set(() => ({ account })),
-  amount: 0n,
-  setAmount: (amount) => set(() => ({ amount })),
-  client: null,
-  setClient: (client) => set(() => ({ client }))
-}))
+
+type ClientState = {
+  provider: WalletApi | null,
+  setProvider: (client: any) => void
+}
+
+
+export const useAccountStore = create(
+  persist<AccountState>(
+    (set) => ({
+      isConnected: false,
+      setIsConnected: (isConnected) => set(() => ({ isConnected })),
+      account: '',
+      setAccount: (account) => set(() => ({ account })),
+      amount: '',
+      setAmount: (amount) => set(() => ({ amount })),
+      reset: () => {
+        set({ isConnected: false, account: '', amount: '' })
+      },
+    }),
+    {
+      name: 'ahan-storage',
+      storage: createJSONStorage(() => sessionStorage)
+    },
+  ),
+)
+
+export const useClientStore = create<ClientState>((
+  (set) => ({
+    provider: null,
+    setProvider: (provider) => set(() => ({ provider }))
+  })))
